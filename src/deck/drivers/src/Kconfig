@@ -162,6 +162,20 @@ config DECK_EXTRX_TAER
     help
         Expecting TAER channel mapping instead of the default AETR.
 
+config DECK_ESP32_UART_BRIDGE
+    bool "Support the ESP32 UART bridge development deck"
+    default n
+    depends on !DEBUG_PRINT_ON_UART1
+    help
+        Receive-only bridge that reads ASCII framed measurements of the form
+        !0xII,0xVVVV# from an ESP32 connected to UART1 (115200 baud, 8N1, no
+        flow control) and publishes four of them as the log variables
+        esp32Uart.var1 .. esp32Uart.var4.
+
+        This is a development deck without OW memory, so it has to be loaded
+        through CONFIG_DECK_FORCE="esp32UartBridge". UART1 is claimed
+        exclusively, which is why the console must not be routed to it.
+
 config DECK_FLAPPER
     bool "Enable Flapper Nimble+ PCB functionality"
     default n
