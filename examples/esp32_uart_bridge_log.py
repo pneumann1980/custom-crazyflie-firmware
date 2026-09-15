@@ -61,7 +61,10 @@ LOG_VARIABLES = ['var1', 'var2', 'var3', 'var4']
 
 # Diagnostic counters of the firmware side parser. Optional: they are only
 # subscribed with --stats because they live in a second log block.
-STATS_VARIABLES = ['nOk', 'nErr', 'nUnknown']
+STATS_VARIABLES = ['nOk', 'nErr', 'nUnknown', 'nOvr', 'age']
+
+# esp32Uart.age reports this while no valid frame has been received yet.
+AGE_NEVER = 0xFFFFFFFF
 
 logging.basicConfig(level=logging.ERROR)
 
@@ -171,7 +174,13 @@ class Esp32UartBridgeLogger:
         """Called from the cflib callback thread for every received sample."""
         if logconf.name != LOG_GROUP:
             # Statistics block, printed on its own line to keep rows aligned.
-            values = '  '.join(f'{data[f"{LOG_GROUP}.{v}"]:>14d}' for v in STATS_VARIABLES)
+            def render(name):
+                value = data[f'{LOG_GROUP}.{name}']
+                if name == 'age':
+                    return 'never' if value == AGE_NEVER else f'{value} ms'
+                return str(value)
+
+            values = '  '.join(f'{render(v):>14}' for v in STATS_VARIABLES)
             print(f'{"":>14}  {timestamp:>14d}  {values}   (parser counters)')
             return
 

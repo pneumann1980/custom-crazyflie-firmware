@@ -116,6 +116,19 @@ void esp32UartBridgeParserInit(ESP32UartBridgeParser *parser);
 void esp32UartBridgeParserResetFrame(ESP32UartBridgeParser *parser);
 
 /**
+ * Drop a partially received frame and count it as rejected.
+ *
+ * Used by the receive task when the link has been silent long enough that a
+ * frame still in progress can only be the remains of a peer that stopped
+ * mid-frame. Unlike esp32UartBridgeParserResetFrame() this updates
+ * stats.framesRejected, so a truncated frame is visible in the diagnostics.
+ *
+ * @param parser Parser context, must not be NULL.
+ * @return true if a partial frame was actually discarded.
+ */
+bool esp32UartBridgeParserDiscardPartialFrame(ESP32UartBridgeParser *parser);
+
+/**
  * Feed a single received character into the parser.
  *
  * @p data is modified only after a complete frame, terminated by '#', has

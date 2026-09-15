@@ -412,6 +412,52 @@ void testResetFrameDropsThePartialFrameButKeepsStatistics(void)
   TEST_ASSERT_EQUAL_UINT32(1, parser.stats.framesAccepted);
 }
 
+void testDiscardPartialFrameCountsTheTruncatedFrame(void)
+{
+  feed("!0x01,0x3214#");
+  feed("!0x02,0x00");
+
+  TEST_ASSERT_TRUE(esp32UartBridgeParserDiscardPartialFrame(&parser));
+
+  TEST_ASSERT_EQUAL_UINT32(1, parser.stats.framesAccepted);
+  TEST_ASSERT_EQUAL_UINT32(1, parser.stats.framesRejected);
+  TEST_ASSERT_EQUAL_UINT16(0, data.var2);
+
+  // The remainder of the truncated frame must not complete it afterwards.
+  TEST_ASSERT_EQUAL_UINT32(0, feed("07#"));
+  TEST_ASSERT_EQUAL_UINT16(0, data.var2);
+}
+
+void testDiscardPartialFrameOutsideAFrameIsANoOp(void)
+{
+  TEST_ASSERT_EQUAL_UINT32(1, feed("!0x01,0x3214#"));
+
+  TEST_ASSERT_FALSE(esp32UartBridgeParserDiscardPartialFrame(&parser));
+
+  TEST_ASSERT_EQUAL_UINT32(1, parser.stats.framesAccepted);
+  TEST_ASSERT_EQUAL_UINT32(0, parser.stats.framesRejected);
+  TEST_ASSERT_EQUAL_UINT16(0x3214, data.var1);
+}
+
+void testDiscardPartialFrameIsIdempotent(void)
+{
+  feed("!0x03,0x1");
+
+  TEST_ASSERT_TRUE(esp32UartBridgeParserDiscardPartialFrame(&parser));
+  TEST_ASSERT_FALSE(esp32UartBridgeParserDiscardPartialFrame(&parser));
+
+  TEST_ASSERT_EQUAL_UINT32(1, parser.stats.framesRejected);
+}
+
+void testFrameAfterDiscardIsStillParsed(void)
+{
+  feed("!0x04,0x12");
+  esp32UartBridgeParserDiscardPartialFrame(&parser);
+
+  TEST_ASSERT_EQUAL_UINT32(1, feed("!0x04,0x00ff#"));
+  TEST_ASSERT_EQUAL_UINT16(0x00ff, data.var4);
+}
+
 void testEmptyFeedIsANoOp(void)
 {
   TEST_ASSERT_EQUAL_UINT32(0, esp32UartBridgeParserFeed(&parser, NULL, 0, &data));

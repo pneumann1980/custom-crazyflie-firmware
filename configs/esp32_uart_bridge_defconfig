@@ -14,7 +14,12 @@ CONFIG_MOTORS_ESC_PROTOCOL_DSHOT=y
 # The deck has no OW memory, so it is loaded unconditionally by name. The
 # string has to match DeckDriver.name in ESP32UartBridgeDeck.c exactly.
 CONFIG_DECK_ESP32_UART_BRIDGE=y
+CONFIG_DECK_ESP32_UART_BRIDGE_ON_UART1=y
 CONFIG_DECK_FORCE="esp32UartBridge"
 
 # UART1 belongs to the deck, the console must not be routed to it.
 # CONFIG_DEBUG_PRINT_ON_UART1 is not set
+
+# NOTE: a Loco deck on its default pins drives RX1/TX1 as IRQ and RESET and
+# will clash with this. Use configs/esp32_uart_bridge_uart2_defconfig instead,
+# or set CONFIG_DECK_LOCODECK_USE_ALT_PINS.

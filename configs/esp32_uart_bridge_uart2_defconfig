@@ -1,0 +1,31 @@
+# Crazyflie 2.1 Brushless with the ESP32 UART bridge development deck on UART2.
+#
+# Use this variant when UART1 is not available, in particular together with a
+# Loco deck on its default pins (it drives RX1/TX1 as IRQ and RESET).
+#
+# Pin usage of a Loco + Flow + ESP32 bridge stack with this configuration:
+#   Loco   IO_1 (CS), RX1/TX1 (IRQ, RESET), SPI
+#   Flow   IO_3, I2C, SPI          (SPI is a bus, sharing it is fine)
+#   Bridge RX2/TX2 (PA3/PA2)       no overlap with either deck
+#
+# On the Crazyflie 2.1 Brushless the motors sit on PA1, PB11, PA15 and PB10,
+# so PA2/PA3 are free. This is NOT true for a BigQuad deck, which drives the
+# motors from PA2/PA3.
+#
+#   make esp32_uart_bridge_uart2_defconfig
+#   make -j"$(nproc)"      -> build/cf21bl.bin
+
+CONFIG_PLATFORM_CF21BL=y
+
+CONFIG_MOTORS_REQUIRE_ARMING=y
+CONFIG_MOTORS_ESC_PROTOCOL_DSHOT=y
+
+# The deck has no OW memory, so it is loaded unconditionally by name. The
+# string has to match DeckDriver.name in ESP32UartBridgeDeck.c exactly.
+CONFIG_DECK_ESP32_UART_BRIDGE=y
+CONFIG_DECK_ESP32_UART_BRIDGE_ON_UART2=y
+CONFIG_DECK_FORCE="esp32UartBridge"
+
+# UART2 carries CPX towards the AI deck. An attached AI deck would be a
+# genuine conflict, so its driver is left out of this build.
+# CONFIG_DECK_AI is not set

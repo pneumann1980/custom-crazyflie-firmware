@@ -173,6 +173,17 @@ void esp32UartBridgeParserResetFrame(ESP32UartBridgeParser *parser)
   parser->length = 0;
 }
 
+bool esp32UartBridgeParserDiscardPartialFrame(ESP32UartBridgeParser *parser)
+{
+  if (parser->state != ESP32_UART_BRIDGE_STATE_BODY) {
+    return false;
+  }
+
+  parser->stats.framesRejected++;
+  esp32UartBridgeParserResetFrame(parser);
+  return true;
+}
+
 void esp32UartBridgeParserInit(ESP32UartBridgeParser *parser)
 {
   memset(parser, 0, sizeof(*parser));

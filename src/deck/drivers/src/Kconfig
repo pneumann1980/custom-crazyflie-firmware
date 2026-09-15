@@ -165,16 +165,48 @@ config DECK_EXTRX_TAER
 config DECK_ESP32_UART_BRIDGE
     bool "Support the ESP32 UART bridge development deck"
     default n
-    depends on !DEBUG_PRINT_ON_UART1
     help
         Receive-only bridge that reads ASCII framed measurements of the form
-        !0xII,0xVVVV# from an ESP32 connected to UART1 (115200 baud, 8N1, no
-        flow control) and publishes four of them as the log variables
-        esp32Uart.var1 .. esp32Uart.var4.
+        !0xII,0xVVVV# from an ESP32 (115200 baud, 8N1, no flow control) and
+        publishes four of them as the log variables esp32Uart.var1 ..
+        esp32Uart.var4.
 
         This is a development deck without OW memory, so it has to be loaded
-        through CONFIG_DECK_FORCE="esp32UartBridge". UART1 is claimed
-        exclusively, which is why the console must not be routed to it.
+        through CONFIG_DECK_FORCE="esp32UartBridge".
+
+choice
+    prompt "UART port used by the ESP32 UART bridge deck"
+    depends on DECK_ESP32_UART_BRIDGE
+    default DECK_ESP32_UART_BRIDGE_ON_UART1
+    help
+        The deck claims the selected port exclusively. Pick the one that does
+        not collide with the other decks in the stack.
+
+    config DECK_ESP32_UART_BRIDGE_ON_UART1
+        bool "UART1 - RX1 (PC11) and TX1 (PC10)"
+        depends on !DEBUG_PRINT_ON_UART1
+        help
+            Default port. UART1 is claimed exclusively, which is why the
+            console must not be routed to it.
+
+            Beware of the Loco deck: unless CONFIG_DECK_LOCODECK_USE_ALT_PINS
+            is set it drives RX1/TX1 as IRQ and RESET GPIOs. That clash is not
+            detected at runtime, because the Loco deck declares the pins in
+            usedGpio while this deck declares them in usedPeriph, and the two
+            fields are never compared against each other.
+
+    config DECK_ESP32_UART_BRIDGE_ON_UART2
+        bool "UART2 - RX2 (PA3) and TX2 (PA2)"
+        help
+            Use this when UART1 is taken, for instance by a Loco deck on its
+            default pins. On the Crazyflie 2.1 Brushless PA2/PA3 are not motor
+            pins, and neither the Loco nor the Flow deck touches them.
+
+            UART2 is shared with CPX towards the AI deck. Both drivers declare
+            DECK_USING_UART2 in usedPeriph, so an attached AI deck is detected
+            as a conflict at runtime and no deck is initialized.
+
+endchoice
 
 config DECK_FLAPPER
     bool "Enable Flapper Nimble+ PCB functionality"
