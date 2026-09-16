@@ -6,6 +6,16 @@ obj-$(CONFIG_DECK_BUZZ)                 += buzzdeck.o
 obj-$(CONFIG_DECK_CPPM)                 += cppmdeck.o
 obj-$(CONFIG_DECK_ESP32_UART_BRIDGE)    += ESP32UartBridgeDeck.o
 obj-$(CONFIG_DECK_ESP32_UART_BRIDGE)    += esp32UartBridgeParser.o
+
+# The ESP32 UART bridge deck has no OW memory, so it is only ever enumerated by
+# the forced backend. Without its name in CONFIG_DECK_FORCE the driver is built
+# but never initialized, and the only hint at boot is a missing "Backend found:
+# forced" line - warn at build time instead.
+ifeq ($(CONFIG_DECK_ESP32_UART_BRIDGE),y)
+ifeq ($(findstring esp32UartBridge,$(CONFIG_DECK_FORCE)),)
+$(warning CONFIG_DECK_ESP32_UART_BRIDGE=y but CONFIG_DECK_FORCE=$(CONFIG_DECK_FORCE) does not contain "esp32UartBridge". The deck will never be initialized. Use "make esp32_uart_bridge_defconfig" or "make esp32_uart_bridge_uart2_defconfig".)
+endif
+endif
 obj-$(CONFIG_DECK_FLAPPER)              += flapperdeck.o
 obj-$(CONFIG_DECK_FLOW)                 += flowdeck_v1v2.o
 obj-$(CONFIG_DECK_GTGPS)                += gtgps.o

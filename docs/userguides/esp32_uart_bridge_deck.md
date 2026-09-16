@@ -198,6 +198,57 @@ only puts them in the log TOC; the ground station still has to subscribe to
 them with a log configuration, which is what the example does (all four in one
 block at 100 ms).
 
+## Troubleshooting: the deck does not appear
+
+The deck has no OW memory, so it is enumerated **only** by the forced backend.
+That backend is compiled in solely when `CONFIG_DECK_FORCE` is neither `"none"`
+nor empty (see `src/deck/backends/Kbuild`). Building with a stale or default
+`.config` therefore silently leaves the deck out.
+
+A correct boot prints all three of these lines:
+
+```text
+DECK_DISCOVERY: Backend found: onewire
+DECK_DISCOVERY: Backend found: deckctrl
+DECK_DISCOVERY: Backend found: forced          <- must be present
+DECK_FORCED: CONFIG_DECK_FORCE=esp32UartBridge found
+DECK_CORE: Calling INIT on driver esp32UartBridge for deck N
+ESP32UART: ESP32 UART bridge listening on UART1 at 115200 baud
+```
+
+If `Backend found: forced` is missing, the firmware was built without
+`CONFIG_DECK_FORCE`. Check and rebuild:
+
+```bash
+grep CONFIG_DECK_FORCE build/.config      # must be "esp32UartBridge"
+
+rm -rf build
+make esp32_uart_bridge_defconfig          # or ..._uart2_defconfig
+make -j"$(nproc)"
+```
+
+`make` alone reuses the existing `build/.config`; running a different
+`*_defconfig` earlier, or an older build directory, leaves
+`CONFIG_DECK_FORCE="none"` in place. Since that combination builds the driver
+but never runs it, `src/deck/drivers/src/Kbuild` emits a build-time warning
+when `CONFIG_DECK_ESP32_UART_BRIDGE=y` and `CONFIG_DECK_FORCE` does not name
+the deck.
+
+Verify the linked image before flashing:
+
+```bash
+arm-none-eabi-nm build/cf21bl.elf | grep backend_
+# expected: backend_owBackend, backend_deckctrlBackend, backend_forcedBackend
+```
+
+Further checks once the deck does initialise:
+
+| Observation | Meaning |
+| --- | --- |
+| `param deck.esp32UartBridge` = 0 | Driver never initialised, see above |
+| `param deck.esp32UartBridge` = 1, `age` = `0xFFFFFFFF` | Driver up, nothing received: wiring, ground, baudrate, or ESP32 silent |
+| `ERROR: Driver Periph usage conflicts ...` in the log | Another deck claims the same port; **no decks at all are initialised** |
+
 ## Unit tests
 
 ```bash
